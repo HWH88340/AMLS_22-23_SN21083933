@@ -5,9 +5,6 @@ import os
 import numpy as np
 import cv2
 
-tf.app.flags.DEFINE_integer("is_train", 1, "1 for training, 0 for predicting")
-FLAGS = tf.app.flags.FLAGS
-
 def mkdir(path):
     directory = os.path.exists(path)
     if not directory:

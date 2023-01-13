@@ -32,18 +32,33 @@ def img_convert(inputfile, outputdir): # Haar Cascade
         print(e)
 
 
-def read_picture():
+def read_picture(train_flag):
     #preprocessing
-    j = 0
-    for inputfile in glob.glob("./Datasets/cartoon_set/img/*.png"): # ./Datasets/celeba/img/*.jpg  ./Datasets/cartoon_set/img/*.png
-        outputdir = "./b2_cnn_processed_eyes"
-        mkdir(outputdir)
-        img_convert(inputfile, outputdir)
-        j = j + 1
-        print(j, "times")
+    if train_flag == 1:
 
-    # filequeue
-    file_name_list = glob.glob("./b2_cnn_processed_eyes/*.png")
+        j = 0
+        for inputfile in glob.glob("./Datasets/cartoon_set/img/*.png"):
+            outputdir = "./b2_cnn_processed_eyes"
+            mkdir(outputdir)
+            img_convert(inputfile, outputdir)
+            j = j + 1
+            print(j, "times")
+
+        # filequeue
+        file_name_list = glob.glob("./b2_cnn_processed_eyes/*.png")
+    else:
+        j = 0
+        for inputfile in glob.glob("./Datasets/cartoon_set_test/img/*.png"):
+            outputdir = "./b2_cnn_processed_eyes_test"
+            mkdir(outputdir)
+            img_convert(inputfile, outputdir)
+            j = j + 1
+            print(j, "times")
+
+        # filequeue
+        file_name_list = glob.glob("./b2_cnn_processed_eyes_test/*.png")
+
+
     file_name_queue = tf.train.string_input_producer(file_name_list)
 
     # decode
@@ -53,7 +68,10 @@ def read_picture():
     image_dec.set_shape([32, 32, 1])
     image_new = tf.cast(image_dec, tf.float32)
 
-    filename_batch, image_batch = tf.train.batch([file, image_new], batch_size=10, num_threads=2, capacity=100)
+    if train_flag == 1:
+        filename_batch, image_batch = tf.train.batch([file, image_new], batch_size=10, num_threads=2, capacity=100)
+    else:
+        filename_batch, image_batch = tf.train.batch([file, image_new], batch_size=1)
 
     return filename_batch, image_batch
 
@@ -64,7 +82,6 @@ def filename2label(files, csv_data):
 
     for file in files:
         digit_str_name = "".join(list(filter(str.isdigit, str(file))))
-        # label = csv_data.loc[int(digit_str_name), "face_shape"]
         label = csv_data.loc[int(digit_str_name), "eye_color"]
         label_queue.append(label)
 
@@ -103,10 +120,12 @@ def create_model(x):
     return y_predict
 
 
-def task_b2_cnn():
-    filename, image = read_picture()
-    data_csv = pd.read_csv("./Datasets/cartoon_set/labels.csv", delimiter='\t', index_col=0)
-
+def task_b2_cnn(train_flag):
+    filename, image = read_picture(train_flag)
+    if train_flag == 1:
+        data_csv = pd.read_csv("./Datasets/cartoon_set/labels.csv", delimiter='\t', index_col=0)
+    else:
+        data_csv = pd.read_csv("./Datasets/cartoon_set_test/labels.csv", delimiter='\t', index_col=0)
     # prepare data
     x = tf.placeholder(tf.float32, shape=[None, 32, 32, 1])
     y_true = tf.placeholder(tf.float32, shape=[None, 5])
@@ -135,33 +154,56 @@ def task_b2_cnn():
         # initializaiton
         sess.run(initial)
 
-        # load the model
-        if os.path.exists("./model_B2/checkpoint"):
-            saver.restore(sess, "./model_B2/Task_B2_model")
+        if train_flag == 1:
+            # start the coord and threads
+            coord = tf.train.Coordinator()
+            threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
-        # start the coord and threads
-        coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+            for i in range(2000):
+                filename_value, image_value = sess.run([filename, image])
 
-        for i in range(2000):
-            filename_value, image_value = sess.run([filename, image])
+                labels = filename2label(filename_value, data_csv)
+                # one-hot
+                labels_value = tf.reshape(tf.one_hot(labels, depth=5), [-1, 5]).eval()
 
-            labels = filename2label(filename_value, data_csv)
-            # one-hot
-            labels_value = tf.reshape(tf.one_hot(labels, depth=5), [-1, 5]).eval()
+                _, error, accuracy_value = sess.run([optimizer, losses, accuracies],
+                                                    feed_dict={x: image_value, y_true: labels_value})
 
-            _, error, accuracy_value = sess.run([optimizer, losses, accuracies],
-                                                feed_dict={x: image_value, y_true: labels_value})
+                print("Training times: %d, Loss: %f，Accuracy: %f" % (i + 1, error, accuracy_value))
 
-            print("Training times: %d, Loss: %f，Accuracy: %f" % (i + 1, error, accuracy_value))
+                if i % 30 == 0:
+                    saver.save(sess, "./model_B2/Task_B2_model")
+                if error < 0.001:
+                    break
 
-            if i % 30 == 0:
-                saver.save(sess, "./model_B2/Task_B2_model")
-            if error < 0.001:
-                break
+            coord.request_stop()
+            coord.join(threads)
+        else:
+            # load the model
+            if os.path.exists("./model_B2/checkpoint"):
+                saver.restore(sess, "./model_B2/Task_B2_model")
+            # start the coord
+            coord = tf.train.Coordinator()
+            threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
-        coord.request_stop()
-        coord.join(threads)
+            correct = 0
+            # prediction
+            for i in range(1000):
+                # predict with one sample once
+                filename_value, image_value = sess.run([filename, image])
+                labels = filename2label(filename_value, data_csv)
+                # one-hot encoding
+                labels_value = tf.reshape(tf.one_hot(labels, depth=5), [-1, 5]).eval()
+
+                true = tf.argmax(sess.run(y_true, feed_dict={x: image_value, y_true: labels_value}), 1).eval()
+                predict = tf.argmax(sess.run(y_predict, feed_dict={x: image_value, y_true: labels_value}), 1).eval()
+                if true == predict:
+                    correct = correct + 1
+                accuracy = correct / (i + 1)
+                print("Time: %d, Y true: %d, Y prediction: %d, accuracy: %f" % (i + 1, true, predict, accuracy)
+                      )
+            coord.request_stop()
+            coord.join(threads)
 
 
 

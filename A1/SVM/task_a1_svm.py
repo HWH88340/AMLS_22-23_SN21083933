@@ -9,6 +9,7 @@ import os
 from sklearn.svm import SVC
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
+import pickle
 
 def mkdir(path):
     directory = os.path.exists(path)
@@ -55,19 +56,37 @@ def img_convert(inputfile, outputdir): # Haar Cascade
 
 
 
-def task_a1_svm():
-    j = 0
-    for inputfile in glob.glob("./Datasets/celeba/img/*.jpg"): # ./Datasets/celeba/img/*.jpg  ./Datasets/cartoon_set/img/*.png
-        outputdir = "./a1_svm_processed_img"
-        mkdir(outputdir)
-        img_convert(inputfile, outputdir)
-        j = j + 1
-        print(j, "times")
+def task_a1_svm(train_flag):
+    if train_flag == 1:
+        j = 0
+        for inputfile in glob.glob("./Datasets/celeba/img/*.jpg"):
+            outputdir = "./a1_svm_processed_img"
+            mkdir(outputdir)
+            img_convert(inputfile, outputdir)
+            j = j + 1
+            print(j, "times")
 
-    path = "./a1_svm_processed_img"
+        path = "./a1_svm_processed_img"
 
-    datanames = os.listdir(path)
-    csv_data = pd.read_csv("./Datasets/celeba/labels.csv", delimiter='\t', index_col=0)
+        datanames = os.listdir(path)
+        csv_data = pd.read_csv("./Datasets/celeba/labels.csv", delimiter='\t', index_col=0)
+
+    else:
+        j = 0
+        for inputfile in glob.glob("./Datasets/celeba_test/img/*.jpg"):
+            outputdir = "./a1_svm_processed_img_test"
+            mkdir(outputdir)
+            img_convert(inputfile, outputdir)
+            j = j + 1
+            print(j, "times")
+
+        path = "./a1_svm_processed_img_test"
+
+        datanames = os.listdir(path)
+        csv_data = pd.read_csv("./Datasets/celeba_test/labels.csv", delimiter='\t', index_col=0)
+
+
+
     image_list = []
     label_list = []
 
@@ -91,20 +110,34 @@ def task_a1_svm():
     image_list = np.array(image_list)
     label_list = np.array(label_list)
 
-    train_X, test_X, train_y, test_y = train_test_split(image_list, label_list)
-    model = SVC(kernel='linear').fit(train_X, train_y)
-    score = model.score(test_X, test_y)
-    print(score)
+    if train_flag == 1:
+        train_X, test_X, train_y, test_y = train_test_split(image_list, label_list)
+        model = SVC(kernel='linear').fit(train_X, train_y)
+        with open('a1_svm.pickle', 'wb') as w:
+            pickle.dump(model, w)
+        score = model.score(test_X, test_y)
 
-    test_predict_y = model.predict(test_X)
-    train_predict_y = model.predict(train_X)
+        print(score)
 
-    print("train")
-    print(sklearn.metrics.classification_report(train_y, train_predict_y))
-    print("test")
-    print(sklearn.metrics.classification_report(test_y, test_predict_y))
+        test_predict_y = model.predict(test_X)
+        train_predict_y = model.predict(train_X)
 
-    print("matrix 1")
-    print(confusion_matrix(train_y, train_predict_y))
-    print("matrix 2")
-    print(confusion_matrix(test_y, test_predict_y))
+        print("train")
+        print(sklearn.metrics.classification_report(train_y, train_predict_y))
+        print("test")
+        print(sklearn.metrics.classification_report(test_y, test_predict_y))
+
+        print("matrix 1")
+        print(confusion_matrix(train_y, train_predict_y))
+        print("matrix 2")
+        print(confusion_matrix(test_y, test_predict_y))
+    else:
+        with open('a1_svm.pickle', 'rb') as r:
+            test_model = pickle.load(r)
+        score_test = test_model.score(image_list, label_list)
+        print(score_test)
+
+
+
+
+

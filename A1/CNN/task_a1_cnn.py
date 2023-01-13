@@ -4,16 +4,9 @@ import pandas as pd
 import os
 import numpy as np
 
-tf.app.flags.DEFINE_integer("is_train", 1, "1 for training, 0 for predicting")
-FLAGS = tf.app.flags.FLAGS
-
-
-def read_picture(train):
+def read_picture():
     # filequeue
-    if train == 1:
-        file_name_list = glob.glob("./img/*.jpg")
-    else:
-        file_name_list = glob.glob("./img/test/*.jpg")
+    file_name_list = glob.glob("./Datasets/celeba/img/*.jpg")
     file_name_queue = tf.train.string_input_producer(file_name_list)
 
     # decode
@@ -23,11 +16,8 @@ def read_picture(train):
     image_dec.set_shape([218, 178, 3])
     image_new = tf.cast(image_dec, tf.float32)
 
-    if train == 1:
-        filename_batch, image_batch = tf.train.batch([file, image_new], batch_size=50, num_threads=2, capacity=100)
-    else:
-        filename_batch, image_batch = tf.train.batch([file, image_new], batch_size=1)
 
+    filename_batch, image_batch = tf.train.batch([file, image_new], batch_size=50, num_threads=2, capacity=100)
     return filename_batch, image_batch
 
 
@@ -40,7 +30,6 @@ def filename2label(files, csv_data):
     for file in files:
         digit_str_name = "".join(list(filter(str.isdigit, str(file))))
         label = csv_data.loc[int(digit_str_name), "gender"]
-        # label = csv_data.loc[int(digit_str_name), "smiling"]
         if label == 1:
             label_queue = label_queue + male
         else:
@@ -82,8 +71,8 @@ def create_model(x):
 
 
 def task_a1_cnn():
-    filename, image = read_picture(1)
-    data_csv = pd.read_csv("./labels.csv", delimiter='\t', index_col=0)
+    filename, image = read_picture()
+    data_csv = pd.read_csv("./Datasets/celeba/labels.csv", delimiter='\t', index_col=0)
 
     # prepare data
     x = tf.placeholder(tf.float32, shape=[None, 218, 178, 3])
@@ -113,56 +102,35 @@ def task_a1_cnn():
         # initializaiton
         sess.run(initial)
 
-        # # load the model
-        # if os.path.exists("./model_A1/checkpoint"):
-        #     saver.restore(sess, "./model_A1/Task_A1_model")
+        # load the model
+        if os.path.exists("./model_A1/checkpoint"):
+            saver.restore(sess, "./model_A1/Task_A1_model")
 
-        if FLAGS.is_train == 1:
-            # start the coord and threads
-            coord = tf.train.Coordinator()
-            threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
-            for i in range(2000):
-                filename_value, image_value = sess.run([filename, image])
+        # start the coord and threads
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
-                labels = filename2label(filename_value, data_csv)
-                # one-hot
-                labels_value = tf.reshape(labels, [-1, 2]).eval()
+        for i in range(2000):
+            filename_value, image_value = sess.run([filename, image])
 
-                _, error, accuracy_value = sess.run([optimizer, losses, accuracies],
-                                                    feed_dict={x: image_value, y_true: labels_value})
+            labels = filename2label(filename_value, data_csv)
+            # one-hot
+            labels_value = tf.reshape(labels, [-1, 2]).eval()
 
-                print("Training times: %d, Loss: %f，Accuracy: %f" % (i + 1, error, accuracy_value))
+            _, error, accuracy_value = sess.run([optimizer, losses, accuracies],
+                                                feed_dict={x: image_value, y_true: labels_value})
 
-                if i % 30 == 0:
-                    saver.save(sess, "./model_A1/Task_A1_model")
-                if error < 0.01:
-                    break
+            print("Training times: %d, Loss: %f，Accuracy: %f" % (i + 1, error, accuracy_value))
 
-            coord.request_stop()
-            coord.join(threads)
-        else:
-            # start the coord
-            coord = tf.train.Coordinator()
-            threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-            # prediction
-            for i in range(100):
-                # predict with one sample once
-                filename, image = read_picture(0)
-                filename_value, image_value = sess.run([filename, image])
-                labels = filename2label(filename_value, data_csv)
-                # one-hot encoding
-                labels_value = tf.reshape(labels, [-1, 2]).eval()
+            if i % 30 == 0:
+                saver.save(sess, "./model_A1/Task_A1_model")
+            if error < 0.01:
+                break
 
-                print("Time: %d, Y true: %d, Y prediction: %d" % (
-                    i + 1,
-                    tf.argmax(sess.run(y_true, feed_dict={x: image_value, y_true: labels_value}), 1).eval(),
-                    tf.argmax(sess.run(y_predict, feed_dict={x: image_value, y_true: labels_value}), 1).eval()
-                )
-                      )
+        coord.request_stop()
+        coord.join(threads)
 
-            coord.request_stop()
-            coord.join(threads)
 
 
 

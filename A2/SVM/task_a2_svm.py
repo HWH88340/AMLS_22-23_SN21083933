@@ -38,8 +38,6 @@ def img_convert(inputfile, outputdir): # Haar Cascade
     try:
         face_cascade = cv2.CascadeClassifier(
             '/Users/33381/anaconda3/envs/ELEC0134_py36_cv/Lib/site-packages/cv2/data/haarcascade_frontalface_default.xml') # face & smile
-        # face_cascade = cv2.CascadeClassifier(
-        #     '/Users/33381/anaconda3/envs/ELEC0134_py36_cv/Lib/site-packages/cv2/data/haarcascade_eye.xml')  # eyes
 
         # detects faces in the input image
         face_detect = face_cascade.detectMultiScale(img, 1.3, 4)
@@ -60,22 +58,16 @@ def img_convert(inputfile, outputdir): # Haar Cascade
 def task_a2_svm():
     j = 0
     for inputfile in glob.glob("./Datasets/celeba/img/*.jpg"): # ./Datasets/celeba/img/*.jpg  ./Datasets/cartoon_set/img/*.png
-        # outdir = "./processed_img"
-        # outdir = "./processed_eyes"
-        # outputdir = "./processed_edge"
-        outputdir = "./processed_smile"
+        outputdir = "./a2_svm_processed_img"
         mkdir(outputdir)
         img_convert(inputfile, outputdir)
         j = j + 1
         print(j, "times")
 
-    path = "./processed_img"
-    # path = "./processed_eyes"
-    # path = "./processed_edge"
+    path = "./a2_svm_processed_img"
 
     datanames = os.listdir(path)
-    csv_data = pd.read_csv("./labels.csv", delimiter='\t', index_col=0)
-    # csv_data = pd.read_csv("./labels2.csv", delimiter='\t', index_col=0)
+    csv_data = pd.read_csv("./Datasets/celeba/labels.csv", delimiter='\t', index_col=0)
     image_list = []
     label_list = []
 
@@ -89,10 +81,7 @@ def task_a2_svm():
         image_list.append(image)
 
         digit_str = "".join(list(filter(str.isdigit, str(data))))
-        # label = csv_data.loc[int(digit_str), "gender"]
         label = csv_data.loc[int(digit_str), "smiling"]
-        # label = csv_data.loc[int(digit_str), "eye_color"]
-        # label = csv_data.loc[int(digit_str), "face_shape"]
 
 
         if label == -1:

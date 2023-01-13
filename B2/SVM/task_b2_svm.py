@@ -36,8 +36,6 @@ def img_convert(inputfile, outputdir): # Haar Cascade
     img = cv2.imread(inputfile, cv2.IMREAD_GRAYSCALE)
 
     try:
-        # face_cascade = cv2.CascadeClassifier(
-        #     '/Users/33381/anaconda3/envs/ELEC0134_py36_cv/Lib/site-packages/cv2/data/haarcascade_frontalface_default.xml') # face & smile
         face_cascade = cv2.CascadeClassifier(
             '/Users/33381/anaconda3/envs/ELEC0134_py36_cv/Lib/site-packages/cv2/data/haarcascade_eye.xml')  # eyes
 
@@ -59,24 +57,18 @@ def img_convert(inputfile, outputdir): # Haar Cascade
 
 
 def task_b2_svm():
-    # j = 0
-    # for inputfile in glob.glob("./Datasets/cartoon_set/img/*.png"): # ./Datasets/celeba/img/*.jpg  ./Datasets/cartoon_set/img/*.png
-    #     # outputdir = "./processed_img"
-    #     outputdir = "./processed_eyes"
-    #     # outputdir = "./processed_edge"
-    #     # outputdir = "./processed_smile"
-    #     mkdir(outputdir)
-    #     img_convert(inputfile, outputdir)
-    #     j = j + 1
-    #     print(j, "times")
+    j = 0
+    for inputfile in glob.glob("./Datasets/cartoon_set/img/*.png"): # ./Datasets/celeba/img/*.jpg  ./Datasets/cartoon_set/img/*.png
+        outputdir = "./b2_svm_processed_eyes"
+        mkdir(outputdir)
+        img_convert(inputfile, outputdir)
+        j = j + 1
+        print(j, "times")
 
-    # path = "./processed_img"
-    path = "./processed_eyes"
-    # path = "./processed_edge"
+    path = "./b2_svm_processed_eyes"
 
     datanames = os.listdir(path)
-    csv_data = pd.read_csv("./labels.csv", delimiter='\t', index_col=0)
-    # csv_data = pd.read_csv("./labels2.csv", delimiter='\t', index_col=0)
+    csv_data = pd.read_csv("./Datasets/cartoon_set/labels.csv", delimiter='\t', index_col=0)
     image_list = []
     label_list = []
 
@@ -90,16 +82,8 @@ def task_b2_svm():
         image_list.append(image)
 
         digit_str = "".join(list(filter(str.isdigit, str(data))))
-        # label = csv_data.loc[int(digit_str), "gender"]
-        # label = csv_data.loc[int(digit_str), "smiling"]
         label = csv_data.loc[int(digit_str), "eye_color"]
-        # label = csv_data.loc[int(digit_str), "face_shape"]
 
-
-        # if label == -1:
-        #     label_list.append(0) # 0 for female
-        # else:
-        #     label_list.append(1) # 1 for male
 
         label_list.append(label) # for task b1, 2
 

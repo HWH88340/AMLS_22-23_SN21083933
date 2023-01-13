@@ -1,5 +1,3 @@
-import tensorflow as tf
-
 from A1.CNN.task_a1_cnn import task_a1_cnn
 from A1.SVM.task_a1_svm import task_a1_svm
 from A2.CNN.task_a2_cnn import task_a2_cnn
@@ -9,17 +7,14 @@ from B1.SVM.task_b1_svm import task_b1_svm
 from B2.CNN.task_b2_cnn import task_b2_cnn
 from B2.SVM.task_b2_svm import task_b2_svm
 
-tf.app.flags.DEFINE_integer("is_train", 1, "1 for training, 0 for predicting")
-FLAGS = tf.app.flags.FLAGS
-
 if __name__ == "__main__":
-    task_a1_cnn()
+    # task_a1_cnn()
     # task_a1_svm()
     # task_a2_cnn()
     # task_a2_svm()
     # task_b1_cnn()
     # task_b1_svm()
     # task_b2_cnn()
-    # task_b2_svm()
+    task_b2_svm()
 
 

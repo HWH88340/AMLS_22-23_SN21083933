@@ -12,7 +12,7 @@ The project is to solve binary and multiclass classification tasks. For both tas
 -   B2/CNN/task_b2_cnn.py: Construct the CNN model for task b2
 -   B2/SVM/task_b2_svm.py: Construct the SVM model for task b2
 
-1. Packet required
+## Packet required
 -   absl-py             1.19.2
 -   astor               1.19.2
 -   blas                3.4.13.47

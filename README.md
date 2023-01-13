@@ -1,7 +1,9 @@
 # AMLS_22-23_SN21083933
 ## Description
-The project is to solve binary and multiclass classification tasks. For both task A and task B, CNN and SVM classifiers are developed.
-
+- The project is to solve binary and multiclass classification tasks. For both task A and task B, CNN and SVM classifiers are developed.
+- Replace the following absolute paths with the path where the xml file locates in your own PC
+  - "/Users/33381/anaconda3/envs/ELEC0134_py36_cv/Lib/site-packages/cv2/data/haarcascade_frontalface_default.xml"
+  - "/Users/33381/anaconda3/envs/ELEC0134_py36_cv/Lib/site-packages/cv2/data/haarcascade_eye.xml"
 ## Role of each file
 -   A1/CNN/task_a1_cnn.py: Construct the CNN model for task a1
 -   A1/SVM/task_a1_svm.py: Construct the SVM model for task a1
